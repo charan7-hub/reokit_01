@@ -57,6 +57,11 @@ create policy "Public can read loan products"
   using (true);
 
 grant select on public.banks, public.loan_products to anon, authenticated;
+-- Remove permissive policies from the attached draft schema, if it was run.
+-- Applications must only be submitted through the validating RPC, never read
+-- or inserted directly by an anonymous browser client.
+drop policy if exists "Allow public insert loan_applications" on public.loan_applications;
+drop policy if exists "Allow public read own applications" on public.loan_applications;
 revoke all on public.loan_applications from anon, authenticated;
 
 -- Public visitors can submit an application, but cannot read the applications

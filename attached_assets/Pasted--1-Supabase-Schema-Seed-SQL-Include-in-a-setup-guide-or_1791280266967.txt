@@ -1,0 +1,122 @@
+#### 1. Supabase Schema & Seed SQL (Include in a setup guide or migration script)
+```sql
+-- Create banks table
+CREATE TABLE public.banks (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  logo_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Create loan products table
+CREATE TABLE public.loan_products (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  bank_id UUID REFERENCES public.banks(id) ON DELETE CASCADE,
+  loan_type TEXT NOT NULL, -- 'Personal', 'Car', 'Housing', 'Education'
+  min_interest_rate NUMERIC(5,2) NOT NULL,
+  max_interest_rate NUMERIC(5,2),
+  max_tenure_months INT NOT NULL,
+  max_loan_amount BIGINT NOT NULL,
+  processing_fee_desc TEXT,
+  features TEXT[],
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Create saved comparisons / applications table
+CREATE TABLE public.loan_applications (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  loan_product_id UUID REFERENCES public.loan_products(id),
+  requested_amount NUMERIC NOT NULL,
+  tenure_months INT NOT NULL,
+  estimated_emi NUMERIC NOT NULL,
+  status TEXT DEFAULT 'Pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS and create public read policies
+ALTER TABLE public.banks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.loan_products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.loan_applications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read banks" ON public.banks FOR SELECT USING (true);
+CREATE POLICY "Allow public read loan_products" ON public.loan_products FOR SELECT USING (true);
+CREATE POLICY "Allow public insert loan_applications" ON public.loan_applications FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public read own applications" ON public.loan_applications FOR SELECT USING (true);
+
+-- Seed 10 Banks & Accurate Rates
+INSERT INTO public.banks (id, name) VALUES 
+('a0000000-0000-0000-0000-000000000001', 'State Bank of India (SBI)'),
+('a0000000-0000-0000-0000-000000000002', 'HDFC Bank'),
+('a0000000-0000-0000-0000-000000000003', 'ICICI Bank'),
+('a0000000-0000-0000-0000-000000000004', 'Axis Bank'),
+('a0000000-0000-0000-0000-000000000005', 'Bank of Baroda'),
+('a0000000-0000-0000-0000-000000000006', 'Punjab National Bank'),
+('a0000000-0000-0000-0000-000000000007', 'Canara Bank'),
+('a0000000-0000-0000-0000-000000000008', 'Kotak Mahindra Bank'),
+('a0000000-0000-0000-0000-000000000009', 'Union Bank of India'),
+('a0000000-0000-0000-0000-000000000010', 'IDFC First Bank');
+
+-- Seed Loan Products with 2026 accurate data
+INSERT INTO public.loan_products (bank_id, loan_type, min_interest_rate, max_interest_rate, max_tenure_months, max_loan_amount, processing_fee_desc, features) VALUES
+-- SBI
+('a0000000-0000-0000-0000-000000000001', 'Personal', 10.00, 14.00, 84, 5000000, 'Up to 1.50%', ARRAY['Zero prepayment charges', 'Instant digital approval']),
+('a0000000-0000-0000-0000-000000000001', 'Car', 8.80, 11.00, 84, 10000000, 'Nil / Minimal fee', ARRAY['Up to 100% on-road funding', 'Govt bank trust']),
+('a0000000-0000-0000-0000-000000000001', 'Housing', 7.25, 9.50, 360, 100000000, '0.35% + GST', ARRAY['Special rate for women', 'Repo-linked transparent rate']),
+('a0000000-0000-0000-0000-000000000001', 'Education', 8.15, 9.90, 180, 30000000, 'Nil up to ₹7.5 Lakhs', ARRAY['For premier institutes', 'Moratorium period available']),
+
+-- HDFC
+('a0000000-0000-0000-0000-000000000002', 'Personal', 9.99, 21.00, 84, 5000000, 'Up to ₹6,500', ARRAY['Quick disbursal in 10 secs', 'Flexible tenure']),
+('a0000000-0000-0000-0000-000000000002', 'Car', 8.15, 12.00, 84, 2500000, 'Up to 0.50%', ARRAY['Fast approval', 'End-to-end digital']),
+('a0000000-0000-0000-0000-000000000002', 'Housing', 7.20, 13.20, 360, 100000000, '0.50% - 1.0%', ARRAY['Special salaried perks', 'Doorstep service']),
+('a0000000-0000-0000-0000-000000000002', 'Education', 10.50, 15.00, 180, 10000000, '1% above ₹7.5L', ARRAY['Global universities covered']),
+
+-- ICICI
+('a0000000-0000-0000-0000-000000000003', 'Personal', 9.99, 18.00, 72, 5000000, 'Up to 2%', ARRAY['Pre-approved offers', 'Minimal documentation']),
+('a0000000-0000-0000-0000-000000000003', 'Car', 8.35, 12.00, 84, 5000000, 'Up to 2%', ARRAY['100% on-road funding']),
+('a0000000-0000-0000-0000-000000000003', 'Housing', 7.65, 9.80, 360, 100000000, 'Up to 2%', ARRAY['Quick balance transfer']),
+('a0000000-0000-0000-0000-000000000003', 'Education', 8.50, 13.00, 180, 20000000, 'Up to 2% + GST', ARRAY['Easy tracking & flexible repayment']),
+
+-- Axis
+('a0000000-0000-0000-0000-000000000004', 'Personal', 9.99, 21.00, 84, 4000000, 'Up to 2%', ARRAY['High loan amount', 'Quick processing']),
+('a0000000-0000-0000-0000-000000000004', 'Car', 8.95, 13.00, 84, 5000000, '₹3,500 - ₹12,000', ARRAY['Flexible repayment options']),
+('a0000000-0000-0000-0000-000000000004', 'Housing', 7.60, 9.90, 360, 100000000, 'Up to 1%', ARRAY['Attractive interest rates']),
+('a0000000-0000-0000-0000-000000000004', 'Education', 8.00, 16.00, 180, 15000000, 'Up to 2%', ARRAY['Comprehensive coverage']),
+
+-- Bank of Baroda
+('a0000000-0000-0000-0000-000000000005', 'Personal', 10.15, 16.00, 84, 5000000, 'Up to 2%', ARRAY['Low processing fees']),
+('a0000000-0000-0000-0000-000000000005', 'Car', 7.60, 11.30, 84, 50000000, '₹1,500 - ₹20,000', ARRAY['Budget-friendly car loans']),
+('a0000000-0000-0000-0000-000000000005', 'Housing', 7.20, 9.10, 360, 50000000, '0.25% - 0.50%', ARRAY['Long tenure options']),
+('a0000000-0000-0000-0000-000000000005', 'Education', 8.15, 12.00, 180, 15000000, 'Nil fee', ARRAY['Premier institute discounts']),
+
+-- PNB
+('a0000000-0000-0000-0000-000000000006', 'Personal', 10.25, 16.80, 84, 2000000, 'Up to 1%', ARRAY['Trusted public bank']),
+('a0000000-0000-0000-0000-000000000006', 'Car', 7.60, 9.40, 84, 10000000, '0.25%', ARRAY['Salaried applicant perks']),
+('a0000000-0000-0000-0000-000000000006', 'Housing', 7.25, 9.90, 360, 50000000, '1.00%', ARRAY['Need-based financing']),
+('a0000000-0000-0000-0000-000000000006', 'Education', 7.50, 12.00, 180, 10000000, 'Nil fee', ARRAY['Affordable rates']),
+
+-- Canara Bank
+('a0000000-0000-0000-0000-000000000007', 'Personal', 9.70, 15.15, 84, 3000000, 'Up to 0.50%', ARRAY['Low interest rates']),
+('a0000000-0000-0000-0000-000000000007', 'Car', 7.45, 11.30, 84, 5000000, 'Up to 0.25%', ARRAY['Special EV car loan rates']),
+('a0000000-0000-0000-0000-000000000007', 'Housing', 7.25, 9.75, 360, 50000000, '0.50%', ARRAY['Flexible repayment']),
+('a0000000-0000-0000-0000-000000000007', 'Education', 7.25, 10.10, 180, 10000000, 'Nil fee', ARRAY['Study in India & Abroad']),
+
+-- Kotak
+('a0000000-0000-0000-0000-000000000008', 'Personal', 9.99, 24.00, 72, 10000000, 'Up to 5%', ARRAY['High loan amount']),
+('a0000000-0000-0000-0000-000000000008', 'Car', 9.00, 14.00, 84, 5000000, 'Up to 1%', ARRAY['Quick sanction']),
+('a0000000-0000-0000-0000-000000000008', 'Housing', 7.99, 9.50, 300, 400000000, '0.50% - 1.0%', ARRAY['High-income salaried buyers']),
+('a0000000-0000-0000-0000-000000000008', 'Education', 9.98, 16.00, 180, 2000000, 'Nil fee', ARRAY['Quick processing']),
+
+-- Union Bank
+('a0000000-0000-0000-0000-000000000009', 'Personal', 8.90, 12.65, 84, 5000000, 'Up to 1%', ARRAY['Low starting rate']),
+('a0000000-0000-0000-0000-000000000009', 'Car', 7.50, 9.45, 84, 5000000, '₹1,000 + GST', ARRAY['Zero pre-closure penalties']),
+('a0000000-0000-0000-0000-000000000009', 'Housing', 7.35, 9.80, 360, 50000000, '0.50%', ARRAY['Semi-urban friendly']),
+('a0000000-0000-0000-0000-000000000009', 'Education', 9.25, 13.00, 180, 15000000, 'Nil fee', ARRAY['Secured & unsecured options']),
+
+-- IDFC First
+('a0000000-0000-0000-0000-000000000010', 'Personal', 9.99, 22.50, 60, 1500000, 'Up to 3.5%', ARRAY['Customer-friendly policies']),
+('a0000000-0000-0000-0000-000000000010', 'Car', 9.99, 16.00, 120, 5000000, 'Up to ₹10,000', ARRAY['Up to 10-year tenure']),
+('a0000000-0000-0000-0000-000000000010', 'Housing', 8.10, 10.50, 360, 100000000, 'Up to 3.0%', ARRAY['Digital first experience']),
+('a0000000-0000-0000-0000-000000000010', 'Education', 9.50, 15.00, 180, 15000000, 'Up to 1.5%', ARRAY['Fast approval']);
