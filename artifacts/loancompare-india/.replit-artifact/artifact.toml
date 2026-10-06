@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "LoanCompare India"
+description = "Compare personal, car, housing, and education loans from Indian banks with live EMI estimates, filters, side-by-side comparisons, and Supabase-backed applications."
+version = "1.0.0"
+id = "artifacts/loancompare-india"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21784
+
+[services.development]
+run = "pnpm --filter @workspace/loancompare-india run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/loancompare-india", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/loancompare-india/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21784"
+BASE_PATH = "/"
