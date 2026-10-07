@@ -125,7 +125,6 @@ function Home() {
       loan_product_id: applyProduct.id,
       requested_amount: amount,
       tenure_months: tenure,
-      estimated_emi: Math.round(calcEmi(amount, applyProduct.min_interest_rate, tenure)),
     };
     try {
       const result = await submitLoanApplication(input);

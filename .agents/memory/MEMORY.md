@@ -1,0 +1,1 @@
+- [Loan-rate sourcing](loan-rate-sourcing.md) — use official bank pages for daily checks and label unverified offers instead of guessing.

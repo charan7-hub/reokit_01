@@ -5,7 +5,8 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { LoanType } from './loanType';
 
-export interface HealthStatus {
-  status: string;
-}
+export type ListLoanProductsParams = {
+loanType: LoanType;
+};

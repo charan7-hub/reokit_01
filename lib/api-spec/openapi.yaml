@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: loans
+    description: Loan catalogue and application operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,62 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /loan-products:
+    get:
+      operationId: listLoanProducts
+      tags: [loans]
+      summary: List products for a loan type
+      parameters:
+        - name: loanType
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/LoanType"
+      responses:
+        "200":
+          description: Matching loan products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LoanProduct"
+        "400":
+          description: Invalid loan type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /loan-applications:
+    post:
+      operationId: submitLoanApplication
+      tags: [loans]
+      summary: Submit a loan enquiry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoanApplicationInput"
+      responses:
+        "201":
+          description: Enquiry stored successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoanApplicationReceipt"
+        "400":
+          description: Invalid application or unavailable offer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Selected loan product no longer exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +91,67 @@ components:
           type: string
       required:
         - status
+    LoanType:
+      type: string
+      enum: [Personal, Car, Housing, Education]
+    Bank:
+      type: object
+      required: [id, name, logo_url]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        logo_url: { type: ["string", "null"] }
+    LoanProduct:
+      type: object
+      required:
+        - id
+        - bank_id
+        - loan_type
+        - min_interest_rate
+        - max_interest_rate
+        - max_tenure_months
+        - max_loan_amount
+        - processing_fee_desc
+        - features
+        - bank
+      properties:
+        id: { type: string, format: uuid }
+        bank_id: { type: string, format: uuid }
+        loan_type: { $ref: "#/components/schemas/LoanType" }
+        min_interest_rate: { type: number, minimum: 0 }
+        max_interest_rate: { type: number, minimum: 0 }
+        max_tenure_months: { type: integer, minimum: 1 }
+        max_loan_amount: { type: integer, minimum: 1 }
+        processing_fee_desc: { type: ["string", "null"] }
+        features:
+          type: array
+          items: { type: string }
+        bank: { $ref: "#/components/schemas/Bank" }
+    LoanApplicationInput:
+      type: object
+      required:
+        - user_name
+        - email
+        - phone
+        - loan_product_id
+        - requested_amount
+        - tenure_months
+      properties:
+        user_name: { type: string, minLength: 2, maxLength: 100 }
+        email: { type: string, format: email, maxLength: 320 }
+        phone: { type: string, pattern: "^\\d{10}$" }
+        loan_product_id: { type: string, format: uuid }
+        requested_amount: { type: number, exclusiveMinimum: 0 }
+        tenure_months: { type: integer, minimum: 1 }
+    LoanApplicationReceipt:
+      type: object
+      required: [id, estimated_emi]
+      properties:
+        id: { type: string, format: uuid }
+        estimated_emi: { type: number, minimum: 0 }
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
 
